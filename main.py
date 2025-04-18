@@ -104,6 +104,8 @@ class SmartAssistant:
     async def chat(self):
         
         conversation_list = []
+        recommend = []
+
         system_prompt = """# Identity
 
 당신은 스마트스토어 고객지원 상담 챗봇입니다.
@@ -215,10 +217,15 @@ user의 마지막 질문에 대해 Q&A Records의 내용을 참고하여 답변�
             messages.append({"role": "user", "content": user_input})
             
             # OpenAI API 호출
-            assistant_reply = await self.openai_api.run_chat(
-                                                messages=messages,
-                                                model_name=OPENAI_MODEL_NAME
-                                                )
+            try:
+                assistant_reply = await self.openai_api.run_chat(
+                                                    messages=messages,
+                                                    model_name=OPENAI_MODEL_NAME
+                                                    )
+            except Exception as e:
+                print(f"API 호출 오류: {e}")
+                print("API 호출에 실패했습니다. 잠시 후 다시 시도해주세요.")
+                continue
             # print(f"AI 상담사: {assistant_reply}")
 
             # 답변 파싱
@@ -248,6 +255,11 @@ user의 마지막 질문에 대해 Q&A Records의 내용을 참고하여 답변�
                     for i in refer_numbers:
                         refer_list.append(rag_results[int(i)-1]["title"])
                         print(f"참고 질문: {rag_results[int(i)-1]['title']}")
+                    
+                    end_time = time()
+                    process_time = end_time - start_time
+                    print(f"챗봇 처리 시간: {process_time:.2f}초")
+
                     # 참고한 질문 제목으로 검색
                     refer_query = " ".join(refer_list)
                     conditional_query, recommend = await self.ai_db_search(refer_query, conversation_list)
@@ -265,10 +277,33 @@ user의 마지막 질문에 대해 Q&A Records의 내용을 참고하여 답변�
             # 대화 기록 업데이트
             conversation_list.append({"role": "user", "content": user_input})
             conversation_list.append({"role": "assistant", "content": assistant_reply})
-            print(len(conversation_list))
+            # print(len(conversation_list))
             end_time = time()
             process_time = end_time - start_time
-            print(f"처리 시간: {process_time:.2f}초")
+            print(f"최종 처리 시간: {process_time:.2f}초")
+
+            # 인공 지능 추천 질문
+            print("<AI 추천 질문> AI가 추천하는 이런 질문은 어떠세요?")
+            if not recommend:
+                query_text = "사람들이 자주 묻는 질문은 어떤 것들이 있어?"
+                conditional_query, recommend = await self.ai_db_search(query_text, conversation_list)
+            
+            context = "\n\n".join(
+                [f"[{i+1}번] Question: {r['title']}:\nAnswer: {r['content']}" for i, r in enumerate(recommend)]
+            )
+
+            ai_recom_dict = await self.ai_recommend(context, conversation_list)
+            for title in ai_recom_dict["recommend"]:
+                print(f"추천 질문: {title}")
+            print("-"*50)
+
+            # 대화 기록 업데이트
+            conversation_list.append({"role": "assistant", "content": f"AI가 추천하는 이런 질문은 어떠세요? : {ai_recom_dict['recommend']}"})
+
+            end_time = time()
+            process_time = end_time - start_time
+            print(f"최종 처리 시간: {process_time:.2f}초")
+
 
     async def ai_db_search(self, query_text, conversation_list):
         ### 데이터 검색 ###
@@ -384,6 +419,50 @@ user의 마지막 질문에 대해 Q&A Records의 내용을 참고하여 답변�
 
         return output
     
+    async def ai_recommend(self, context, conversation_list):
+        
+        system_prompt = """# Identity
+
+당신은 스마트스토어 고객지원 챗봇의 추천 질문 생성 전문가입니다.
+user와의 대화 흐름과 관련 질문 검색 결과를 참고하여, 다음에 user가 궁금해할 만한 질문을 예측하고 제안합니다.
+
+# Instructions
+
+* "Q&A Records"에 있는 내용만만을 바탕으로, user가 다음에 궁금해할 만한 질문을 3가지 추천하세요.
+"""
+        recommend_prompt = """# Instructions
+
+* 위의 "user와의 대화 흐름"과 아래의 "Q&A Records"를 참고해, user가 다음에 궁금해할 만한 스마트스토어 질문 3가지를 만들어주세요.
+* 추천 질문은 user가 실제로 물어볼 법한 표현을 그대로 사용해 자연스럽게 작성해주세요.
+* 추천 질문은 반드시 질문 형태로 출력하세요.
+* 추천 질문은 "Q&A Records"에 있는 내용으로 작성해주세요. 
+  "Q&A Records"에 없는 내용으로 절대 답변하지 마세요. 
+* 출력은 다음 JSON 형식으로 반환하세요 (다른 문장 X):
+
+  {"recommend": ["질문1", "질문2", "질문3"]}
+""".strip()
+        
+        recommend_context = """# Context: Q&A Records
+
+{context}
+""".strip()
+        
+        messages = []
+        messages.append({"role": "system", "content": system_prompt})
+        messages.extend(conversation_list[-3:])
+        messages.append({"role": "system", "content": recommend_prompt})
+        messages.append({"role": "system", "content": recommend_context})
+        # OpenAI API 호출
+        assistant_reply = await self.openai_api.run_chat(
+                                            messages=messages,
+                                            model_name=OPENAI_MODEL_NAME
+                                            )
+        assistant_reply = self.fix_extra_closing_brace(assistant_reply)
+        standardized_qurey = self.safe_parse_json_2(assistant_reply)
+
+        return standardized_qurey
+
+
     def safe_parse_json(self, text):
         """
         문자열 내에서 JSON 객체를 추출하고, 파싱 가능한 가장 첫 JSON 블록만 반환.
@@ -402,6 +481,30 @@ user의 마지막 질문에 대해 Q&A Records의 내용을 참고하여 답변�
                 exc_match = re.search(r'"exclude"\s*:\s*\[[^\]]*\]', json_str)
                 if inc_match and exc_match:
                     recovered = '{' + inc_match.group() + ', ' + exc_match.group() + '}'
+                    try:
+                        return json.loads(recovered)
+                    except json.JSONDecodeError as e3:
+                        print("🔴 복구된 문자열 파싱 실패:", e3)
+                    
+            raise ValueError("유효한 JSON 형식을 찾을 수 없습니다.")
+        
+    def safe_parse_json_2(self, text):
+        """
+        문자열 내에서 JSON 객체를 추출하고, 파싱 가능한 가장 첫 JSON 블록만 반환.
+        중복 괄호나 기타 오류가 있을 경우 정규식으로 보정 시도.
+        """
+        try:
+            # 1차 정상 파싱 시도
+            return json.loads(text)
+        except json.JSONDecodeError:
+            # 중복 괄호 제거 또는 문자열 내 JSON 블록만 추출
+            json_like = re.search(r'\{.*\}', text, re.DOTALL)
+            if json_like:
+                json_str = json_like.group()
+                # ✅ "include": [...] 와 "exclude": [...] 추출
+                recom_match = re.search(r'"recommend"\s*:\s*\[[^\]]*\]', json_str)
+                if recom_match:
+                    recovered = '{' + recom_match.group() + '}'
                     try:
                         return json.loads(recovered)
                     except json.JSONDecodeError as e3:
