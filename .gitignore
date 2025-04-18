@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+
+# Log/Debug/Temp
+*.log
+*.tmp
+
+# Data
+data/
+
+# Secret
+secret*
