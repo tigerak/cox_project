@@ -108,7 +108,7 @@ class SmartAssistant:
 
         system_prompt = """# Identity
 
-당신은 스마트스토어 고객지원 상담 챗봇입니다.
+당신은 스마트스토어 사장님 지원 상담 챗봇입니다.
 
 # Instructions
 
@@ -283,7 +283,7 @@ user의 마지막 질문에 대해 Q&A Records의 내용을 참고하여 답변�
             print(f"최종 처리 시간: {process_time:.2f}초")
 
             # 인공 지능 추천 질문
-            print("<AI 추천 질문> AI가 추천하는 이런 질문은 어떠세요?")
+            print("<AI가 추천하는 이런 질문은 어떠세요?>")
             if not recommend:
                 query_text = "사람들이 자주 묻는 질문은 어떤 것들이 있어?"
                 conditional_query, recommend = await self.ai_db_search(query_text, conversation_list)
@@ -423,7 +423,7 @@ user의 마지막 질문에 대해 Q&A Records의 내용을 참고하여 답변�
         
         system_prompt = """# Identity
 
-당신은 스마트스토어 고객지원 챗봇의 추천 질문 생성 전문가입니다.
+당신은 스마트스토어 사장님 지원 챗봇의 추천 질문 생성 전문가입니다.
 user와의 대화 흐름과 관련 질문 검색 결과를 참고하여, 다음에 user가 궁금해할 만한 질문을 예측하고 제안합니다.
 
 # Instructions
