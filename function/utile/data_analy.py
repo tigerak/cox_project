@@ -2,7 +2,11 @@ import pickle
 import re
 from pprint import pprint
 from collections import defaultdict
+# modules
+from config import *
 
+
+### 데이터 전처리 도구 ###
 def get_data(data_path):
     with open(data_path, 'rb') as f:
         data = pickle.load(f)
@@ -31,9 +35,7 @@ def filter_with_phrase(text, phrase="위 도움말이 도움이 되었나요?"):
     return common_clean(cleaned_text)
 
 
-def filter_without_phrase(text_list, phrase=""):
-    return [text for text in text_list if phrase not in text]
-
+### 데이터 분석 도구 ###
 def data_analysis(keys):
     # print(f"Keys in the dataset: {keys}")
     result = parse_keys(keys)
@@ -98,3 +100,4 @@ def extract_set(parsed_list):
                 result_count[key][value] += 1
 
     return result_set, result_count
+
