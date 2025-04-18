@@ -134,14 +134,14 @@ If the user says: "배송비가 얼마인가요?"
                 print(f"입력 오류: {e}")
                 continue
             # 종료 조건
-            if user_input.lower() == 'exit':
+            if user_input.lower().strip() == 'exit':
                 print("상담 종료.")
                 break
 
             # 관련 chunk 검색
             ###
             # rag_results = self.search_db(user_input)
-            conditional_query, rag_results = await self.ai_db_search(user_input)
+            conditional_query, rag_results = await self.ai_db_search(user_input, conversation_list)
             ###
             print(f"검색 포함 키워드: {conditional_query[0]}")
             print(f"검색 제외 키워드: {conditional_query[1]}")
@@ -250,7 +250,7 @@ user의 마지막 질문에 대해 Q&A Records의 내용을 참고하여 답변�
                         print(f"참고 질문: {rag_results[int(i)-1]['title']}")
                     # 참고한 질문 제목으로 검색
                     refer_query = " ".join(refer_list)
-                    conditional_query, recommend = await self.ai_db_search(refer_query)
+                    conditional_query, recommend = await self.ai_db_search(refer_query, conversation_list)
                     # 추천 질문 목록
                     print("<다음과 같은 질문도 추천합니다.>")
                     recommend_list = []
@@ -270,26 +270,34 @@ user의 마지막 질문에 대해 Q&A Records의 내용을 참고하여 답변�
             process_time = end_time - start_time
             print(f"처리 시간: {process_time:.2f}초")
 
-    async def ai_db_search(self, query_text):
+    async def ai_db_search(self, query_text, conversation_list):
         ### 데이터 검색 ###
         # OpenAI 질문 규격화
         system_prompt = """# Identity
 
-너는 스마트스토어 상담 챗봇에서 사용할 쿼리 파서를 만드는 전문가야.
+당신은 스마트스토어 상담 챗봇에서 사용할 쿼리 파서를 만드는 전문가입니다.
+당신의 역할은 사용자 질문에서 검색에 사용할 핵심 키워드(include)와
+검색에서 제외해야 할 키워드(exclude)를 추출하여 구조화된 JSON으로 반환하는 것입니다.
 
 # Instructions
 
-* user의 마지막 질문을 정확히 분석해서 아래와 같은 형식의 JSON만 반환해.
+* 이전 대화의 흐름을 참고하되, user의 마지막 질문을 기준으로 "include"와 "exclude"를 판단하세요.
+""".strip()
+
+        parsing_prompt = """# Instructions
+
+* 위 대화 흐름을 고려하여, user의 마지막 질문을 정확히 분석해서 검색용 키워드를 추출하세요.
+* 반드시 아래와 같은 JSON 형식으로 답변해야 합니다. 다른 텍스트는 절대 포함하지 마세요
   형식: {"include": [...], "exclude": [...]}
-* "include"에는 사용자가 알고 싶은 핵심 키워드를 넣어. 
-* "exclude"에는 '제외', '빼고', '제외한', '말고' 등의 대상이 되는 단어만 넣어.
-* user의 마지막 질문에 있는 단어만 사용해.
-* 답변은 JSON 하나로만 출력해.
+* "include"에는 사용자가 알고 싶은 핵심 키워드를 추출하여 입력하세요. 
+* "exclude"에는 '제외', '빼고', '말고' 등의 대상이 되는 키워드만 넣으세요.
+  제외 키워드가 없으면 "exclude": [] 로 정확히 입력하세요.
+* 답변은 JSON 하나로만 출력하세요.
 
 # Examples
 
 <user_query>
-무료 배송을 제외한 배송 방법 알려줘
+무료 배송을 제외한 나머지 배송 방법 알려줘
 </user_query>
 
 <assistant_response>
@@ -306,12 +314,13 @@ user의 마지막 질문에 대해 Q&A Records의 내용을 참고하여 답변�
 
 # Answer Guidelines
 
-* user가 사용한 단어만 이용해서 답변을 정확하게 출력해.
-* 절대로 단어를 마음대로 바꾸지 마.
+* 절대로 단어를 함부로 바꾸지 마세요.
 """.strip()
-
+        
         messages = []
         messages.append({"role": "system", "content": system_prompt})
+        messages.extend(conversation_list[-5:])
+        messages.append({"role": "system", "content": parsing_prompt})
         messages.append({"role": "user", "content": query_text})
         # OpenAI API 호출
         assistant_reply = await self.openai_api.run_chat(
@@ -360,7 +369,7 @@ user의 마지막 질문에 대해 Q&A Records의 내용을 참고하여 답변�
         # 결과 출력
         output = []
         for i in range(len(result["documents"][0])):
-            if result["distances"][0][i] < 1.3:
+            if result["distances"][0][i] < 10.3:
                 output.append({
                     "title": result["documents"][0][i],
                     "content": result["metadatas"][0][i]["content"],
