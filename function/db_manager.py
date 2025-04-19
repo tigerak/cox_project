@@ -12,14 +12,14 @@ class DBManager:
         self.chroma = chroma
     
     ### 데이터 저장 도구 ###
-    def data_add_chromadb(self, data_path):
+    async def data_add_chromadb(self, data_path):
         # 데이터 정제 및 로컬 저장
         data = get_data(data_path)
 
         temp_data = {}
         for i, (k, v) in enumerate(data.items(), start=1):
             # OpenAI Embedding 획득
-            embedding = self.openai_api.get_embedding(k, OPENAI_EMBED_NAME)
+            embedding = await self.openai_api.get_embedding(k, OPENAI_EMBED_NAME)
             # key를 해싱하여 id 생성
             id = sha256(k.encode("utf-8")).hexdigest()
 
@@ -44,10 +44,10 @@ class DBManager:
         for i, (k, v) in enumerate(temp_data.items(), start=1):
             v["id"] = sha256(k.encode("utf-8")).hexdigest()
             
-            self.add_data(id=str(v["id"]),
-                          title=k, 
-                          content=v["content"],
-                          embedding=v["embedding"])
+            self.chroma.add_data(id=str(v["id"]),
+                                 title=k, 
+                                 content=v["content"],
+                                 embedding=v["embedding"])
             print(f"{i}번 데이터 ChromaDB 저장 완료 : {k}")
             
         with open(SAVE_DIR + "/key_embed.json", "w", encoding="utf-8") as f:

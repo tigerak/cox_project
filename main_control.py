@@ -31,7 +31,7 @@ class SmartAssistant:
 
     def add_chromadb(self):
         ### 데이터 정제 및 저장 ###
-        self.db_manager.data_add_chromadb(data_path=DATA_PATH)
+        asyncio.run(self.db_manager.data_add_chromadb(data_path=DATA_PATH))
         
     def run_chatbot(self):
         asyncio.run(self.chat_manager.cli_chatbot())
