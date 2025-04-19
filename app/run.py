@@ -1,22 +1,12 @@
-from flask import Flask
-from flask_cors import CORS
-# modules
-import config as config
+import uvicorn
+from app import app
 
-
-def create_app():
-    app = Flask(__name__)
-    app.config.from_object(config)
-    
-    # CORS 설정 추가
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
-    
-    from app.main import bp
-    app.register_blueprint(bp)
-    
-    return app
-
-app = create_app()
     
 if __name__ == '__main__':
-    app.run(debug=False, use_reloader=False)
+    uvicorn.run(
+        "app:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=False,
+        workers=1,
+    )
