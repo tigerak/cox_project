@@ -49,7 +49,7 @@ class ChatManager:
         conversation.append({"role": "user", "content": user_input})
         conversation.append({"role": "assistant", "content": assistant_buffer})
 
-        # ---------- ③ 참고 Q&A / 추천 Q&A ----------
+        # 참고 Q&A / 추천 Q&A 
         if "답변할 수 없습니다" in assistant_buffer:
             msg = "\nQ&A에 없는 내용입니다. 상담사를 연결해 드릴까요?\n"
             yield msg
@@ -67,7 +67,7 @@ class ChatManager:
                 yield "\n추천 질문:" + recom_title
             yield "\n" + ("-" * 50)
 
-        # ---------- ④ AI 추천 질문 ----------
+        # AI 추천 질문
         ai_recom_dict = await self._ai_recom(
             conversation=conversation, recommend=recommend
         )
@@ -115,7 +115,7 @@ class ChatManager:
             else:
                 messages = self._build_messages(user_input, conversation, rag_results)
 
-            # GPT 스트림 → 실시간 출력
+            # GPT 스트림 실시간 출력
             try:
                 assistant_reply = await self._stream_to_buffer(
                     self.openai_api.stream_chat(messages, OPENAI_MODEL_NAME)
@@ -162,9 +162,9 @@ class ChatManager:
         async for token in agen:
             buffer += token
             if hide:
-                continue  # 더 이상 출력하지 않음
+                continue 
 
-            # 1) 버퍼에서 태그 위치 탐색 (아직 출력하지 않은 영역만 검사)
+            # 1) 버퍼에서 태그 위치 탐색
             tag_pos = buffer.find(HIDDEN_TAG, printed_len)
             if tag_pos != -1:
                 # 태그 직전까지 출력, 이후부터 숨김
@@ -242,7 +242,7 @@ class ChatManager:
         return ai_recom_dict
     
     def _build_messages(self, user_input, conversation, rag_results):
-        # ----- SYSTEM 프롬프트 -----
+        
         system_prompt = """# Identity
 
 당신은 스마트스토어 사장님 지원 상담 챗봇입니다.
@@ -261,7 +261,7 @@ If the user says: "배송비가 얼마인가요?"
 """.strip()
         
         
-        # ----- RAG 프롬프트 -----
+        # RAG 프롬프트
         if rag_results:
             context = "\n\n".join(
                 [
