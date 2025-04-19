@@ -20,3 +20,6 @@ DB_PATH = str(ROOT_DIR / "data" / "chroma_db")
 # GPT-mini Respons
 HIDDEN_TAG = "<당신의 AI 상담사>"  # 화면에 숨길 구분자
 LOOKAHEAD  = len(HIDDEN_TAG)  # 태그 길이만큼 안전 버퍼
+
+# Conditional search
+ALPHA = 0.8

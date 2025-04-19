@@ -164,7 +164,7 @@ class DBManager:
         
         return conditional_query, output
 
-    async def conditional_search(self, include, exclude, alpha=0.8):
+    async def conditional_search(self, include, exclude):
         """
         include keyword에서 exclude keyword를 뺀 vector를 이용해서
         ChromaDB에서 cosin similarity .
@@ -175,7 +175,7 @@ class DBManager:
         if exclude.strip():
             v_neg = await self.openai_api.get_embedding(exclude, OPENAI_EMBED_NAME)
             v_neg = np.array(v_neg)
-            q_vec = safe_normalize(v_pos) - alpha * safe_normalize(v_neg)
+            q_vec = safe_normalize(v_pos) - ALPHA * safe_normalize(v_neg)
             q_vec = safe_normalize(q_vec)
         else:
             q_vec = safe_normalize(v_pos)
