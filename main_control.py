@@ -43,5 +43,5 @@ class SmartAssistant:
     
 if __name__ == "__main__":
     smart = SmartAssistant()
-    smart.add_chromadb()
+    # smart.add_chromadb()
     smart.run_chatbot()

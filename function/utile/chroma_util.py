@@ -1,4 +1,5 @@
 import re
+import numpy as np
 import json
 # ChromaDB
 import chromadb
@@ -84,3 +85,7 @@ def fix_extra_closing_brace(text: str) -> str:
             # 뒤에서부터 하나씩 제거
             text = text[::-1].replace('}', '', 1)[::-1]
     return text
+
+def safe_normalize(vec):
+    norm = np.linalg.norm(vec)
+    return vec if norm == 0 else vec / norm

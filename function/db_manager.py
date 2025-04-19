@@ -4,7 +4,8 @@ from hashlib import sha256
 # Modules
 from config import *
 from function.utile.data_analy import get_data
-from function.utile.chroma_util import safe_parse_json, safe_parse_json_2, fix_extra_closing_brace
+from function.utile.chroma_util import (safe_parse_json, safe_parse_json_2, 
+                                        fix_extra_closing_brace, safe_normalize)
 
 class DBManager:
     def __init__(self, openai_api, chroma):
@@ -174,10 +175,10 @@ class DBManager:
         if exclude.strip():
             v_neg = await self.openai_api.get_embedding(exclude, OPENAI_EMBED_NAME)
             v_neg = np.array(v_neg)
-            q_vec = v_pos/np.linalg.norm(v_pos) - alpha * v_neg/np.linalg.norm(v_neg)
-            q_vec = q_vec/np.linalg.norm(q_vec)
+            q_vec = safe_normalize(v_pos) - alpha * safe_normalize(v_neg)
+            q_vec = safe_normalize(q_vec)
         else:
-            q_vec = v_pos/np.linalg.norm(v_pos)
+            q_vec = safe_normalize(v_pos)
 
         result = self.chroma.collection.query(
             query_embeddings=[q_vec],
@@ -188,7 +189,7 @@ class DBManager:
         # 결과 출력
         output = []
         for i in range(len(result["documents"][0])):
-            if result["distances"][0][i] < 10.3:
+            if result["distances"][0][i] < 1.3:
                 output.append({
                     "title": result["documents"][0][i],
                     "content": result["metadatas"][0][i]["content"],
@@ -230,16 +231,11 @@ class DBManager:
   {context}
 """.strip()
         
-#         recommend_context = f"""# Context: Q&A Records
-
-# {context}
-# """.strip()
-        
         messages = []
         messages.append({"role": "system", "content": system_prompt})
         messages.extend(conversation_list[-3:])
         messages.append({"role": "system", "content": recommend_prompt})
-        # messages.append({"role": "system", "content": recommend_context})
+
         # OpenAI API 호출
         assistant_reply = await self.openai_api.run_chat(
                                             messages=messages,

@@ -80,6 +80,7 @@ class ChatManager:
     async def cli_chatbot(self, session_id: str = "cli") -> None:
         """CLI에서도 스트리밍으로 답변을 출력한다."""
         conversation = self.sessions.setdefault(session_id, [])
+        recommend = []
         recommend_buf = []
         print("상담 시작! 'exit' 입력 시 종료됩니다.\n")
 
@@ -105,6 +106,11 @@ class ChatManager:
             print("검색 제외 키워드 :", condition_query[1])
             if len(rag_results) == 0:
                 print("저는 스마트 스토어 FAQ를 위한 챗봇입니다. 스마트 스토어에 대한 질문을 부탁드립니다.")
+                # AI 추천 질문 생성
+                if not recommend:
+                    recommend = recommend_buf
+                ai_recom_dict = await self._ai_recom(conversation=conversation,
+                                                     recommend=recommend)
                 continue
             else:
                 messages = self._build_messages(user_input, conversation, rag_results)

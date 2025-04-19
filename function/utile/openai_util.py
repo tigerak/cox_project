@@ -1,3 +1,4 @@
+import numpy as np
 import openai
 import unicodedata
 
@@ -24,8 +25,11 @@ class OpenAIChat:
                 yield delta.content
     
     async def get_embedding(self, text, model_name):
-        # cleaned_text = self.embed_clean_text(text)
-        cleaned_text = text
+        cleaned_text = self.embed_clean_text(text)
+
+        if not cleaned_text.strip():
+            return np.zeros(1536, dtype=float).tolist()
+    
         response = await self.client.embeddings.create(
             input=[cleaned_text],
             model=model_name
@@ -39,10 +43,13 @@ class OpenAIChat:
         return cleaned_text
 
     def embed_clean_text(self, raw_input):
-        try:
-            user_input = raw_input.decode("utf-8")
-        except UnicodeDecodeError:
-            # user_input = raw_input.decode("utf-8", "ignore")
-            user_input = raw_input.decode("euc-kr")
+        if isinstance(raw_input, bytes):
+            try:
+                user_input = raw_input.decode("utf-8")
+            except UnicodeDecodeError:
+                # user_input = raw_input.decode("utf-8", "ignore")
+                user_input = raw_input.decode("euc-kr")
+        else:
+            user_input = raw_input
         cleaned_text = unicodedata.normalize("NFC", user_input)
         return cleaned_text
