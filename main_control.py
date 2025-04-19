@@ -1,4 +1,5 @@
 import os
+import argparse
 import asyncio
 # Modules
 from config import *
@@ -10,7 +11,7 @@ from function.utile.openai_util import OpenAIChat
 
 
 ### API Setting ###
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 class SmartAssistant:
     def __init__(self):
@@ -43,6 +44,14 @@ class SmartAssistant:
                     
     
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mode", type=str, choices=["db_setting", "run_chat"], required=True,
+                        help="실행 모드 선택: db_setting | run_chat")
+    args = parser.parse_args()
+
     smart = SmartAssistant()
-    smart.add_chromadb()
-    smart.run_chatbot()
+
+    if args.mode == "db_setting":
+        smart.add_chromadb()
+    elif args.mode == "run_chat":
+        smart.run_chatbot()
