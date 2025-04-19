@@ -10,8 +10,7 @@ class ChromaDB:
                   
         client = chromadb.PersistentClient(path=DB_PATH)
 
-        # self.collection = client.get_or_create_collection(name="test_manual")
-        self.collection = client.get_or_create_collection(name="consult_manual")
+        self.collection = client.get_or_create_collection(name=DB_NAME)
 
 
     def add_data(self, id, title, content, embedding):
