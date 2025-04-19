@@ -189,7 +189,7 @@ class DBManager:
         # 결과 출력
         output = []
         for i in range(len(result["documents"][0])):
-            if result["distances"][0][i] < 1.3:
+            if result["distances"][0][i] < 2.3:
                 output.append({
                     "title": result["documents"][0][i],
                     "content": result["metadatas"][0][i]["content"],
