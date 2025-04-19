@@ -11,7 +11,7 @@ from function.utile.openai_util import OpenAIChat
 
 
 ### API Setting ###
-# OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 class SmartAssistant:
     def __init__(self):
