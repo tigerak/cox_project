@@ -8,9 +8,8 @@ from function.utile.chroma_util import ChromaDB
 from function.utile.openai_util import OpenAIChat
 
 
-### Setting ###
-# OPENAI_API_KEY = r""
-# DATA_PATH = r""
+### API Setting ###
+# OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 class SmartAssistant:
     def __init__(self):

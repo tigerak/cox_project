@@ -33,11 +33,11 @@ class DBManager:
             # if i == 20:
             #     break
 
-        with open("./smart/data/key_embed.json", "w", encoding="utf-8") as f:
+        with open(SAVE_DIR + "/key_embed.json", "w", encoding="utf-8") as f:
             json.dump(temp_data, f, ensure_ascii=False, indent=2)
 
         # Local 데이터 ChromaDB에 저장
-        with open("./smart/data/key_embed.json", "r", encoding="utf-8") as f:
+        with open(SAVE_DIR + "/key_embed.json", "r", encoding="utf-8") as f:
             temp_data = json.load(f)
 
         # ChromaDB에 저장: title -(sha256)-> id
@@ -50,7 +50,7 @@ class DBManager:
                           embedding=v["embedding"])
             print(f"{i}번 데이터 ChromaDB 저장 완료 : {k}")
             
-        with open("./smart/data/temp_data.json", "w", encoding="utf-8") as f:
+        with open(SAVE_DIR + "/key_embed.json", "w", encoding="utf-8") as f:
             json.dump(temp_data, f, ensure_ascii=False, indent=2)
 
 
@@ -108,7 +108,8 @@ class DBManager:
 
 # Answer Guidelines
 
-* "내가 더 알아야 할 내용이 있나요" 처럼, 일반적으로 대화의 맥락에서 키워드를 추출해야하는 질문이 들어온다면, 과거 대화로부터 키워드를 찾아내세요.
+* "더 알아야 할 내용이 있나요", "그 조건이 맞지 않으면?" 처럼, 주어가 없어나 대명사라서, 대화의 맥락에서 키워드를 추출해야하는 질문이 들어온다면, 과거 대화로부터 키워드를 찾아내세요.
+* user의 질문이 너무 짧거나 완벽한 문장이 아니라면, 대화의 맥락을 고려하여 완벽한 문장으로 만들어서 키워드를 추출하세요
 
 # Examples
 
@@ -215,28 +216,30 @@ class DBManager:
 
 * "Q&A Records"에 있는 내용과 "assistant의 답변"만을 바탕으로, user가 다음에 궁금해할 만한 질문을 3가지 추천하세요.
 """
-        recommend_prompt = """# Instructions
+        recommend_prompt = f"""# Instructions
 
 * 아래의 "Q&A Records"를 참고해, user가 다음에 궁금해할 만한 스마트스토어 질문 3가지를 만들어주세요.
 * 3가지 질문은 user가 실제로 물어볼 법한 표현을 그대로 사용해 자연스럽게 작성해주세요.
 * 3가지 질문은 모두 "Q&A Records"에 근거한 내용으로만 작성해주세요. 
 * 반드시 "Q&A Records"에 있는 내용만으로 3가지 질문을 만드세요. 
-* 지난 대화에서 이미 답변한 질문은 recommend에 포함하지 마세요.
+* 지난 대화에서 이미 답변한 질문은 3가지 질문에 포함하지 마세요.
 * 출력은 다음 JSON 형식으로 반환하세요 (다른 문장 X):
 
-  {"recommend": ["질문1", "질문2", "질문3"]}
+  {{"recommend": ["질문1", "질문2", "질문3"]}}
+
+  {context}
 """.strip()
         
-        recommend_context = f"""# Context: Q&A Records
+#         recommend_context = f"""# Context: Q&A Records
 
-{context}
-""".strip()
+# {context}
+# """.strip()
         
         messages = []
         messages.append({"role": "system", "content": system_prompt})
         messages.extend(conversation_list[-3:])
         messages.append({"role": "system", "content": recommend_prompt})
-        messages.append({"role": "system", "content": recommend_context})
+        # messages.append({"role": "system", "content": recommend_context})
         # OpenAI API 호출
         assistant_reply = await self.openai_api.run_chat(
                                             messages=messages,

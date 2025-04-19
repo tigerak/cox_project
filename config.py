@@ -6,6 +6,7 @@ CONFIG_PATH = Path(__file__).resolve()
 ROOT_DIR    = CONFIG_PATH.parent
 DB_PATH = str(ROOT_DIR / "data" / "chroma_db")
 DATA_PATH = str(ROOT_DIR / "data" / "final_result.pkl")
+SAVE_DIR = str(ROOT_DIR / "data" )
 
 OPENAI_MODEL_NAME = "gpt-4o-mini"
 OPENAI_EMBED_NAME = "text-embedding-3-small"
