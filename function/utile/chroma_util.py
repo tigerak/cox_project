@@ -2,11 +2,12 @@ import re
 import json
 # ChromaDB
 import chromadb
-
+from config import *
 
 class ChromaDB:
     def __init__(self):
-        client = chromadb.PersistentClient(path="./smart/data/chroma_db")
+                  
+        client = chromadb.PersistentClient(path=DB_PATH)
 
         # self.collection = client.get_or_create_collection(name="test_manual")
         self.collection = client.get_or_create_collection(name="consult_manual")

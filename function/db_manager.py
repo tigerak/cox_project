@@ -18,7 +18,7 @@ class DBManager:
 
         temp_data = {}
         for i, (k, v) in enumerate(data.items(), start=1):
-            # OpenAI Embedding 획득 (title -> embedding)
+            # OpenAI Embedding 획득
             embedding = self.openai_api.get_embedding(k, OPENAI_EMBED_NAME)
             # key를 해싱하여 id 생성
             id = sha256(k.encode("utf-8")).hexdigest()
@@ -57,7 +57,7 @@ class DBManager:
     ### 데이터 검색 도구 ###
     # 기계적 DB 검색
     def search_db(self, query_text):
-        # OpenAI Embedding 획득 (query_text -> embedding)
+        # OpenAI Embedding 획득 
         query_embedding = self.openai_api.get_embedding(query_text, OPENAI_EMBED_NAME)
         # ChromaDB에 저장된 데이터와 유사도 검색
         result = self.collection.query(
@@ -84,8 +84,7 @@ class DBManager:
 
     # AI 이용한 DB 검색
     async def ai_db_search(self, query_text, conversation_list):
-        ### 데이터 검색 ###
-        # OpenAI 질문 규격화
+        
         system_prompt = """# Identity
 
 당신은 스마트스토어 상담 챗봇에서 사용할 쿼리 파서를 만드는 전문가입니다.
@@ -94,18 +93,22 @@ class DBManager:
 
 # Instructions
 
-* 이전 대화의 흐름을 참고하되, user의 마지막 질문을 기준으로 "include"와 "exclude"를 판단하세요.
+* 이전 대화의 흐름을 참고하여 user의 마지막 질문을 기준으로 "include"와 "exclude"를 판단하세요.
 """.strip()
 
         parsing_prompt = """# Instructions
 
-* 위 대화 흐름을 고려하여, user의 마지막 질문을 정확히 분석해서 검색용 키워드를 추출하세요.
+* 위 대화의 맥락을 고려하여 user의 마지막 질문을 정확히 분석하고 검색용 키워드를 추출하세요.
 * 반드시 아래와 같은 JSON 형식으로 답변해야 합니다. 다른 텍스트는 절대 포함하지 마세요
-형식: {"include": [...], "exclude": [...]}
-* "include"에는 사용자가 알고 싶은 핵심 키워드를 추출하여 입력하세요. 
+  형식: {"include": [...], "exclude": [...]}
+* "include"에는 대화의 맥락 상 사용자가 알고 싶은 핵심 키워드만를 추출하여 입력하세요. ("exclude"의 대상은 넣지 마세요.)
 * "exclude"에는 '제외', '빼고', '말고' 등의 대상이 되는 키워드만 넣으세요.
 제외 키워드가 없으면 "exclude": [] 로 정확히 입력하세요.
 * 답변은 JSON 하나로만 출력하세요.
+
+# Answer Guidelines
+
+* "내가 더 알아야 할 내용이 있나요" 처럼, 일반적으로 대화의 맥락에서 키워드를 추출해야하는 질문이 들어온다면, 과거 대화로부터 키워드를 찾아내세요.
 
 # Examples
 
@@ -150,15 +153,13 @@ class DBManager:
         include_query = " ".join(_include)
         _exclude = standardized_qurey["exclude"]
         exclude_query = " ".join(_exclude)
-
-        # print(f"검색 포함 키워드: {include_query}")
-        # print(f"검색 제외 키워드: {exclude_query}")
         
         # ChromaDB에 저장된 데이터와 유사도 검색
         output = await self.conditional_search(include=include_query, 
                                                exclude=exclude_query)
         
         conditional_query = (include_query, exclude_query)
+        
         return conditional_query, output
 
     async def conditional_search(self, include, exclude, alpha=0.8):
@@ -182,6 +183,7 @@ class DBManager:
             n_results=20,
             include=["documents", "metadatas", "distances"]
         )
+        
         # 결과 출력
         output = []
         for i in range(len(result["documents"][0])):
@@ -207,7 +209,7 @@ class DBManager:
         system_prompt = """# Identity
 
 당신은 스마트스토어 사장님 지원 챗봇의 추천 질문 생성 전문가입니다.
-user와의 대화 흐름과 관련 질문 검색 결과를 참고하여, 다음에 user가 궁금해할 만한 질문을 예측하고 제안합니다.
+"대화의 흐름"과 "Q&A Records"를 참고하여, 다음에 user가 궁금해할 만한 질문을 예측하고 제안합니다.
 
 # Instructions
 
@@ -215,18 +217,17 @@ user와의 대화 흐름과 관련 질문 검색 결과를 참고하여, 다음�
 """
         recommend_prompt = """# Instructions
 
-* 위의 "user와의 대화 흐름"과 아래의 "Q&A Records"를 참고해, user가 다음에 궁금해할 만한 스마트스토어 질문 3가지를 만들어주세요.
-* 추천 질문은 user가 실제로 물어볼 법한 표현을 그대로 사용해 자연스럽게 작성해주세요.
-* 추천 질문은 반드시 질문 형태로 출력하세요.
-* 추천 질문은 "Q&A Records"에 있는 내용으로 작성해주세요. 
-  "Q&A Records"에 없는 내용으로 절대 답변하지 마세요. 
-* 지난 대화에서 이미 답변한 질문은 추천하지 마세요.
+* 아래의 "Q&A Records"를 참고해, user가 다음에 궁금해할 만한 스마트스토어 질문 3가지를 만들어주세요.
+* 3가지 질문은 user가 실제로 물어볼 법한 표현을 그대로 사용해 자연스럽게 작성해주세요.
+* 3가지 질문은 모두 "Q&A Records"에 근거한 내용으로만 작성해주세요. 
+* 반드시 "Q&A Records"에 있는 내용만으로 3가지 질문을 만드세요. 
+* 지난 대화에서 이미 답변한 질문은 recommend에 포함하지 마세요.
 * 출력은 다음 JSON 형식으로 반환하세요 (다른 문장 X):
 
   {"recommend": ["질문1", "질문2", "질문3"]}
 """.strip()
         
-        recommend_context = """# Context: Q&A Records
+        recommend_context = f"""# Context: Q&A Records
 
 {context}
 """.strip()

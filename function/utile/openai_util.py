@@ -9,9 +9,19 @@ class OpenAIChat:
         response = await self.client.chat.completions.create(
             messages=messages,
             model=model_name,
-            # temperature=0.7
         )
         return response.choices[0].message.content
+    
+    async def stream_chat(self, messages, model_name):
+        stream = await self.client.chat.completions.create(
+            model=model_name,
+            messages=messages,
+            stream=True
+        )
+        async for chunk in stream:
+            delta = chunk.choices[0].delta
+            if delta and delta.content:
+                yield delta.content
     
     async def get_embedding(self, text, model_name):
         # cleaned_text = self.embed_clean_text(text)
