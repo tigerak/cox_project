@@ -11,7 +11,7 @@ from function.utile.openai_util import OpenAIChat
 
 
 ### API Setting ###
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 class SmartAssistant:
     def __init__(self):
@@ -28,24 +28,27 @@ class SmartAssistant:
                                         db_manager=self.db_manager)
         
     def analysis(self):
-        ### 데이터 분석 ###
+        """데이터 분석"""
         data_analysis(data_path=DATA_PATH)
 
     def add_chromadb(self):
-        ### 데이터 정제 및 저장 ###
+        """데이터 정제 및 저장"""
         asyncio.run(self.db_manager.data_add_chromadb(data_path=DATA_PATH))
         
     def run_chatbot(self):
+        """챗봇 실행 - CLI"""
         asyncio.run(self.chat_manager.cli_chatbot())
     
     def stream_chat(self, user_input, session_id):
+        """챗봇 실행 - API"""
         return self.chat_manager.get_reply_stream(user_input=user_input, 
                                                   session_id=session_id)
                     
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", type=str, choices=["db_setting", "run_chat"], required=True,
+    parser.add_argument("--mode", type=str, choices=["db_setting", "run_chat"], 
+                        required=True,
                         help="실행 모드 선택: db_setting | run_chat")
     args = parser.parse_args()
 

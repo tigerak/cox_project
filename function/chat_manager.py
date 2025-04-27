@@ -12,6 +12,7 @@ class ChatManager:
 
         self.sessions = {}
         
+    # run Chatbot - API
     async def get_reply_stream(self, user_input, session_id="default"):
         """세션별 히스토리 유지 + GPT 토큰 스트림을 그대로 yield"""
         conversation = self.sessions.setdefault(session_id, [])
@@ -76,9 +77,9 @@ class ChatManager:
             yield "\nAI 추천 질문:" + title
         yield "\n" + ("-" * 50)
 
-
+    # run Chatbot -CLI
     async def cli_chatbot(self, session_id: str = "cli") -> None:
-        """CLI에서도 스트리밍으로 답변을 출력한다."""
+        """CLI에서 스트리밍으로 답변을 출력한다."""
         conversation = self.sessions.setdefault(session_id, [])
         recommend = []
         recommend_buf = []
@@ -150,7 +151,7 @@ class ChatManager:
             if recommend:
                 recommend_buf = recommend
 
-
+    # hidden_tag search buffer
     async def _stream_to_buffer(self, agen):
         """
         HIDDEN_TAG가 나타날 때까지 토큰 스트림을 CLI에 실시간 출력하고 
@@ -185,7 +186,7 @@ class ChatManager:
         print()  
         return buffer
     
-
+    # 유사도 기반 - 추천 질문
     async def _db_recom(self, assistant_reply, rag_results, conversation):
         refer_list = []
         recommend = []
@@ -224,6 +225,7 @@ class ChatManager:
         refer_recom_list = (refer_list, recommend_list)
         return refer_recom_list, recommend
 
+    # AI - 추천 질문
     async def _ai_recom(self, conversation, recommend):
         print("<AI가 추천하는 이런 질문은 어떠세요?>")
         if not recommend:
@@ -241,6 +243,7 @@ class ChatManager:
 
         return ai_recom_dict
     
+    # 상담 답변 메시지 작성용 Prompt
     def _build_messages(self, user_input, conversation, rag_results):
         
         system_prompt = """# Identity
